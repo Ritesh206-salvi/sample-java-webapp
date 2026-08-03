@@ -2,81 +2,58 @@ pipeline {
     agent any
 
     tools {
-        // These names must match what you configured in
-        // Manage Jenkins -> Tools
-        jdk 'JDK21'
-        maven 'Maven3'
-    }
-
-    environment {
-        TOMCAT_URL   = 'http://localhost:8081'
-        TOMCAT_CREDS = credentials('tomcat-manager-creds') // set up in Jenkins Credentials
-        WAR_NAME     = 'sample-java-webapp'
-    }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timestamps()
+        // Jenkins मधील Maven चे नाव
+        maven 'Maven3' 
     }
 
     stages {
-
-        stage('Checkout') {
+        // Topic 1: Source Code Management (SCM) & Checkout
+        stage('Assignment Topic 1: Checkout SCM') {
             steps {
-                checkout scm
+                echo 'Fetching Source Code from GitHub Repository...'
+                git branch: 'main', url: 'https://github.com/Ritesh206-salvi/sample-java-webapp.git'
             }
         }
 
-        stage('Compile') {
+        // Topic 2: Maven Build Stage (Compiling & Packaging)
+        stage('Assignment Topic 2: Build & Package') {
             steps {
-                bat 'mvn -B clean compile'
+                echo 'Compiling Java Code and Packaging into WAR File...'
+                // Windows साठी bat वापरले आहे
+                bat 'mvn clean package'
             }
         }
 
-        stage('Unit Tests') {
+        // Topic 3: Testing Stage (Unit Tests Execution)
+        stage('Assignment Topic 3: Execute Unit Tests') {
             steps {
-                bat 'mvn -B test'
-            }
-            post {
-                always {
-                    junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
-                }
+                echo 'Running Automated Unit Tests with Maven...'
+                bat 'mvn test'
             }
         }
 
-        stage('Package') {
+        // Topic 4: Deployment Stage (Deploying WAR to Tomcat Server)
+        stage('Assignment Topic 4: Deploy to Tomcat Server') {
             steps {
-                bat 'mvn -B package -DskipTests'
-                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
-            }
-        }
-
-        stage('Deploy to Tomcat') {
-            steps {
-                bat """
-                    curl -u %TOMCAT_CREDS_USR%:%TOMCAT_CREDS_PSW% ^
-                      -T target\\%WAR_NAME%.war ^
-                      "%TOMCAT_URL%/manager/text/deploy?path=/%WAR_NAME%&update=true"
-                """
-            }
-        }
-
-        stage('Smoke Test') {
-            steps {
-                bat """
-                    timeout /t 10
-                    curl -f %TOMCAT_URL%/%WAR_NAME%/ || exit 1
-                """
+                echo 'Deploying WAR file to Apache Tomcat on Port 8081...'
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://localhost:8081/')], 
+                       contextPath: 'sample-java-webapp', 
+                       war: 'target/*.war'
             }
         }
     }
 
+    // Pipeline Post-Actions
     post {
+        always {
+            echo 'Assignment Pipeline execution completed.'
+        }
         success {
-            echo "Build #${env.BUILD_NUMBER} deployed successfully to Tomcat."
+            echo 'SUCCESS: Application successfully deployed to Tomcat!'
+            echo 'Access your App here: http://localhost:8081/sample-java-webapp'
         }
         failure {
-            echo "Build #${env.BUILD_NUMBER} failed."
+            echo 'FAILURE: Pipeline execution failed. Please check the logs above.'
         }
     }
 }

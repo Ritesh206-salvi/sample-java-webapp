@@ -36,7 +36,7 @@ pipeline {
         stage('Assignment Topic 4: Deploy to Tomcat Server') {
             steps {
                 echo 'Deploying WAR file to Apache Tomcat on Port 8081...'
-                deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://localhost:8081/')], 
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-manager-creds', path: '', url: 'http://localhost:8081/')], 
                        contextPath: 'sample-java-webapp', 
                        war: 'target/*.war'
             }
